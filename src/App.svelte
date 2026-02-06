@@ -1,6 +1,7 @@
 <script>
-  //import { onMount } from 'svelte';
+  import { tick } from 'svelte';
   let videoEl;
+  let container;
   let scriptText = "Upload a script to start...";
   let scrollSpeed = 30; // pixels per second
   let isScrolling = false;
@@ -35,15 +36,20 @@
   function stopScroll() {
     isScrolling = false;
   }
-
-  function resetScript() {
-    offset = 0;
+  async function resetScroll() {
+    stopScroll();
+    await tick();
+    offset = 0; // animate back to top
   }
 
-  function handleUpload(event) {
+  async function handleUpload(event) {
     const file = event.target.files[0];
     if (file) {
-      file.text().then(text => scriptText = text);
+      const text = await file.text();
+     // file.text().then(text => scriptText = text);
+     scriptText = text;
+     await tick();
+     offset = 0; // reset when new script is loaded
     }
   }
 
@@ -95,13 +101,13 @@
     top: 0;
     left: 0;
     width: 100%;
+    height: 100%;
     /* background-color: red; */
     border: 1px solid orangered;
-    height: 100%;
     pointer-events: none;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;/* start at the top */
     overflow: hidden;
     color: rgb(231, 217, 15);
     font-size: 2rem;
@@ -110,7 +116,7 @@
   }
   .scrolling {
     transform: translateY(var(--offset));
-    transition: transform 0.1s linear;
+    transition: transform 0.6s ease; /* smooth animation */
   }
   @media (max-width: 600px) {
     .teleprompter {
@@ -121,7 +127,7 @@
 
 <div style="position:relative; width:100%; height:80vh;">
   <video bind:this={videoEl} autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-  <div class="teleprompter">
+  <div class="teleprompter" bind:this={container}>
     <div class="scrolling" style="--offset: {offset}px;">
       {#each scriptText.split('\n') as line}
         <p>{line}</p>
@@ -134,7 +140,7 @@
   <input type="file" accept=".txt" on:change={handleUpload} />
   <button on:click={startScroll}>Start</button>
   <button on:click={stopScroll}>Stop</button>
-  <button on:click={resetScript}>Reset</button>
+  <button on:click={resetScroll}>Reset</button>
   <label>Speed: <input type="range" min="10" max="200" bind:value={scrollSpeed} /></label>
 </div>
 
